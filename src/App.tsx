@@ -168,6 +168,7 @@ export default function App() {
                 <span>Title</span>
                 <input
                   id="note-title"
+                  aria-label="Title"
                   value={selectedNote.title}
                   onChange={(event) => updateNote({ title: event.target.value })}
                   placeholder="Give your note a title"
@@ -178,6 +179,7 @@ export default function App() {
                 <span>Body</span>
                 <textarea
                   id="note-body"
+                  aria-label="Body"
                   value={selectedNote.body}
                   onChange={(event) => updateNote({ body: event.target.value })}
                   placeholder="Write anything you want to remember..."
