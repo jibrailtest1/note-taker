@@ -9,9 +9,17 @@ type Note = {
 
 const STORAGE_KEY = 'demo-note-taker-notes'
 
+function createNoteId() {
+  if (typeof globalThis !== 'undefined' && typeof globalThis.crypto?.randomUUID === 'function') {
+    return globalThis.crypto.randomUUID()
+  }
+
+  return `note-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+}
+
 const seedNotes: Note[] = [
   {
-    id: crypto.randomUUID(),
+    id: createNoteId(),
     title: 'Welcome to Note Taker',
     body:
       'This demo app stores notes in your browser so they stay here after refresh. Create a new note, edit the title or body, and delete anything you do not need.',
@@ -56,8 +64,8 @@ export default function App() {
   }, [notes])
 
   useEffect(() => {
-    if (!notes.some((note) => note.id === selectedNoteId) && notes[0]) {
-      setSelectedNoteId(notes[0].id)
+    if (!notes.some((note) => note.id === selectedNoteId)) {
+      setSelectedNoteId(notes[0]?.id ?? '')
     }
   }, [notes, selectedNoteId])
 
@@ -68,7 +76,7 @@ export default function App() {
 
   const createNote = () => {
     const newNote: Note = {
-      id: crypto.randomUUID(),
+      id: createNoteId(),
       title: 'Untitled note',
       body: '',
       updatedAt: new Date().toISOString(),
@@ -119,12 +127,12 @@ export default function App() {
             <p className="eyebrow">Demo-ready notes</p>
             <h1>Note Taker</h1>
           </div>
-          <button className="primary-button" onClick={createNote}>
+          <button type="button" className="primary-button" onClick={createNote}>
             + New note
           </button>
         </div>
 
-        <div className="note-list">
+        <div className="notes-list">
           {notes.map((note) => (
             <button
               key={note.id}
@@ -132,7 +140,7 @@ export default function App() {
               className={`note-card ${note.id === selectedNote?.id ? 'note-card--active' : ''}`}
               onClick={() => setSelectedNoteId(note.id)}
             >
-              <div className="note-card__title-row">
+              <div className="note-card__top">
                 <strong>{note.title.trim() || 'Untitled note'}</strong>
                 <span>{formatUpdatedAt(note.updatedAt)}</span>
               </div>
@@ -143,49 +151,49 @@ export default function App() {
       </aside>
 
       <main className="editor-panel">
-        {selectedNote ? (
-          <>
-            <div className="editor-panel__header">
-              <div>
-                <p className="eyebrow">Selected note</p>
-                <h2>Edit your note</h2>
+        <section className={`editor-card ${selectedNote ? '' : 'editor-card--empty'}`}>
+          {selectedNote ? (
+            <>
+              <div className="editor-card__header">
+                <div>
+                  <p className="eyebrow">Selected note</p>
+                  <h2>Edit your note</h2>
+                </div>
+                <button type="button" className="ghost-button danger-button" onClick={deleteNote}>
+                  Delete note
+                </button>
               </div>
-              <button className="ghost-button" onClick={deleteNote}>
-                Delete note
+
+              <label className="field">
+                <span>Title</span>
+                <input
+                  id="note-title"
+                  value={selectedNote.title}
+                  onChange={(event) => updateNote({ title: event.target.value })}
+                  placeholder="Give your note a title"
+                />
+              </label>
+
+              <label className="field field--grow">
+                <span>Body</span>
+                <textarea
+                  id="note-body"
+                  value={selectedNote.body}
+                  onChange={(event) => updateNote({ body: event.target.value })}
+                  placeholder="Write anything you want to remember..."
+                />
+              </label>
+            </>
+          ) : (
+            <div className="empty-state">
+              <h2>No notes yet</h2>
+              <p>Create your first note to get started.</p>
+              <button type="button" className="primary-button" onClick={createNote}>
+                Create note
               </button>
             </div>
-
-            <label className="field-label" htmlFor="note-title">
-              Title
-            </label>
-            <input
-              id="note-title"
-              className="text-input"
-              value={selectedNote.title}
-              onChange={(event) => updateNote({ title: event.target.value })}
-              placeholder="Give your note a title"
-            />
-
-            <label className="field-label" htmlFor="note-body">
-              Body
-            </label>
-            <textarea
-              id="note-body"
-              className="text-area"
-              value={selectedNote.body}
-              onChange={(event) => updateNote({ body: event.target.value })}
-              placeholder="Write anything you want to remember..."
-            />
-          </>
-        ) : (
-          <div className="empty-state">
-            <h2>No notes yet</h2>
-            <p>Create your first note to get started.</p>
-            <button className="primary-button" onClick={createNote}>
-              Create note
-            </button>
-          </div>
-        )}
+          )}
+        </section>
       </main>
     </div>
   )
