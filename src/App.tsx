@@ -29,7 +29,7 @@ function createEmptyNote(): Note {
 function createStarterNote(): Note {
   return {
     id: createNoteId(),
-    title: 'Untitled note',
+    title: '',
     body: '',
     updatedAt: new Date().toISOString(),
   }
