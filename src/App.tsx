@@ -26,6 +26,15 @@ function createEmptyNote(): Note {
   }
 }
 
+function createStarterNote(): Note {
+  return {
+    id: createNoteId(),
+    title: 'Untitled note',
+    body: '',
+    updatedAt: new Date().toISOString(),
+  }
+}
+
 function isNote(value: unknown): value is Note {
   if (!value || typeof value !== 'object') {
     return false
@@ -75,7 +84,7 @@ function formatUpdatedAt(value: string) {
 export default function App() {
   const [notes, setNotes] = useState<Note[]>(() => {
     const savedNotes = loadNotes()
-    return savedNotes.length > 0 ? savedNotes : [createEmptyNote()]
+    return savedNotes.length > 0 ? savedNotes : [createStarterNote()]
   })
   const [selectedNoteId, setSelectedNoteId] = useState<string>(() => loadNotes()[0]?.id ?? '')
 
