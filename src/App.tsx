@@ -73,8 +73,17 @@ function formatUpdatedAt(value: string) {
 }
 
 export default function App() {
-  const [notes, setNotes] = useState<Note[]>(() => loadNotes())
+  const [notes, setNotes] = useState<Note[]>(() => {
+    const savedNotes = loadNotes()
+    return savedNotes.length > 0 ? savedNotes : [createEmptyNote()]
+  })
   const [selectedNoteId, setSelectedNoteId] = useState<string>(() => loadNotes()[0]?.id ?? '')
+
+  useEffect(() => {
+    if (!selectedNoteId && notes.length > 0) {
+      setSelectedNoteId(notes[0].id)
+    }
+  }, [notes, selectedNoteId])
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(notes))
@@ -118,7 +127,7 @@ export default function App() {
   }
 
   const deleteNote = () => {
-    if (!selectedNote) {
+    if (!selectedNote || !window.confirm('Delete this note? This cannot be undone.')) {
       return
     }
 
@@ -136,27 +145,21 @@ export default function App() {
         </div>
 
         <div className="notes-list" aria-label="Notes list">
-          {notes.length > 0 ? (
-            notes.map((note, index) => (
-              <button
-                key={note.id}
-                type="button"
-                className={`note-card ${note.id === selectedNote?.id ? 'note-card--active' : ''}`}
-                onClick={() => setSelectedNoteId(note.id)}
-                aria-label={`Open note ${index + 1}`}
-              >
-                <div className="note-card__top">
-                  <strong>{note.title.trim() || 'Untitled note'}</strong>
-                  <span>{formatUpdatedAt(note.updatedAt)}</span>
-                </div>
-                <p>{note.body.trim() || 'No content yet.'}</p>
-              </button>
-            ))
-          ) : (
-            <div className="empty-list-state">
-              <p>No notes yet.</p>
-            </div>
-          )}
+          {notes.map((note, index) => (
+            <button
+              key={note.id}
+              type="button"
+              className={`note-card ${note.id === selectedNote?.id ? 'note-card--active' : ''}`}
+              onClick={() => setSelectedNoteId(note.id)}
+              aria-label={`Open note ${index + 1}`}
+            >
+              <div className="note-card__top">
+                <strong>{note.title.trim() || 'Untitled note'}</strong>
+                <span>{formatUpdatedAt(note.updatedAt)}</span>
+              </div>
+              <p>{note.body.trim() || 'Start typing to capture your note.'}</p>
+            </button>
+          ))}
         </div>
       </aside>
 
@@ -165,7 +168,10 @@ export default function App() {
           {selectedNote ? (
             <>
               <div className="editor-card__header">
-                <h2>Edit note</h2>
+                <div>
+                  <h2>Edit note</h2>
+                  <p className="editor-card__hint">Your first draft is ready — just add a title and notes.</p>
+                </div>
                 <button type="button" className="ghost-button danger-button" onClick={deleteNote}>
                   Delete note
                 </button>

@@ -70,6 +70,21 @@ button {
   gap: 16px;
 }
 
+.editor-card__header {
+  align-items: flex-start;
+}
+
+.editor-card__header > div {
+  display: grid;
+  gap: 6px;
+}
+
+.editor-card__hint {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
 h1,
 h2 {
   margin: 0;

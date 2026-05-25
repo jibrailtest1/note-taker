@@ -1,4 +1,4 @@
-import { describe, beforeEach, it, expect } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App, { STORAGE_KEY } from './App'
@@ -7,24 +7,22 @@ describe('App', () => {
   beforeEach(() => {
     cleanup()
     window.localStorage.clear()
+    vi.restoreAllMocks()
   })
 
-  it('creates, edits, and persists a note', async () => {
+  it('starts with a ready-to-edit draft note and persists edits', async () => {
     const user = userEvent.setup()
 
     const { unmount } = render(<App />)
 
     expect(screen.getByRole('heading', { name: 'Notes', level: 1 })).toBeInTheDocument()
-    expect(screen.getByText('No note selected')).toBeInTheDocument()
-
-    await user.click(screen.getAllByRole('button', { name: 'Create note' })[0])
+    expect(screen.getByText('Your first draft is ready — just add a title and notes.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Open note 1' })).toBeInTheDocument()
 
     const titleInput = screen.getByLabelText('Title')
     const bodyInput = screen.getByLabelText('Body')
 
-    await user.clear(titleInput)
     await user.type(titleInput, 'Shopping list')
-    await user.clear(bodyInput)
     await user.type(bodyInput, 'Milk, bread, apples')
 
     expect(screen.getByDisplayValue('Shopping list')).toBeInTheDocument()
@@ -49,8 +47,9 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: 'Open note 1' })).toBeInTheDocument()
   })
 
-  it('deletes an existing note', async () => {
+  it('requires confirmation before deleting an existing note', async () => {
     const user = userEvent.setup()
+    const confirmSpy = vi.spyOn(window, 'confirm')
 
     window.localStorage.setItem(
       STORAGE_KEY,
@@ -64,13 +63,21 @@ describe('App', () => {
       ]),
     )
 
-    render(<App />)
-
-    expect(screen.getByDisplayValue('Temporary note')).toBeInTheDocument()
+    confirmSpy.mockReturnValueOnce(false)
+    const { unmount } = render(<App />)
 
     await user.click(screen.getByRole('button', { name: 'Delete note' }))
 
-    expect(screen.getByText('No note selected')).toBeInTheDocument()
+    expect(confirmSpy).toHaveBeenCalledWith('Delete this note? This cannot be undone.')
+    expect(screen.getByDisplayValue('Temporary note')).toBeInTheDocument()
+
+    unmount()
+
+    confirmSpy.mockReturnValueOnce(true)
+    render(<App />)
+
+    await user.click(screen.getByRole('button', { name: 'Delete note' }))
+
     expect(screen.queryByDisplayValue('Temporary note')).not.toBeInTheDocument()
     expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? '[]')).toEqual([])
   })

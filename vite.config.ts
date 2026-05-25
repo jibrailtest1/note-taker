@@ -8,4 +8,7 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.js'],
   },
+  define: {
+    'process.env.NODE_ENV': JSON.stringify('test'),
+  },
 })
