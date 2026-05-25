@@ -12,8 +12,15 @@ A simple demo-ready note-taking app built with React, TypeScript, and Vite.
 ## Run locally
 
 ```bash
-npm install
+npm install --include=dev
 npm run dev
+```
+
+## Test
+
+```bash
+npm install --include=dev
+npm test
 ```
 
 ## Build

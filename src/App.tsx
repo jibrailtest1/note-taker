@@ -7,7 +7,7 @@ type Note = {
   updatedAt: string
 }
 
-const STORAGE_KEY = 'demo-note-taker-notes'
+export const STORAGE_KEY = 'demo-note-taker-notes'
 
 function createNoteId() {
   if (typeof globalThis !== 'undefined' && typeof globalThis.crypto?.randomUUID === 'function') {
@@ -17,34 +17,60 @@ function createNoteId() {
   return `note-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
 }
 
-const seedNotes: Note[] = [
-  {
+function createEmptyNote(): Note {
+  return {
     id: createNoteId(),
-    title: 'Welcome to Note Taker',
-    body:
-      'This demo app stores notes in your browser so they stay here after refresh. Create a new note, edit the title or body, and delete anything you do not need.',
+    title: '',
+    body: '',
     updatedAt: new Date().toISOString(),
-  },
-]
+  }
+}
+
+function createStarterNote(): Note {
+  return {
+    id: createNoteId(),
+    title: '',
+    body: '',
+    updatedAt: new Date().toISOString(),
+  }
+}
+
+function isNote(value: unknown): value is Note {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+
+  const candidate = value as Record<string, unknown>
+
+  return (
+    typeof candidate.id === 'string' &&
+    typeof candidate.title === 'string' &&
+    typeof candidate.body === 'string' &&
+    typeof candidate.updatedAt === 'string'
+  )
+}
 
 function loadNotes(): Note[] {
-  const fallback = seedNotes
-
   if (typeof window === 'undefined') {
-    return fallback
+    return []
   }
 
   try {
     const saved = window.localStorage.getItem(STORAGE_KEY)
 
     if (!saved) {
-      return fallback
+      return []
     }
 
-    const parsed = JSON.parse(saved) as Note[]
-    return parsed.length > 0 ? parsed : fallback
+    const parsed = JSON.parse(saved) as unknown
+
+    if (!Array.isArray(parsed)) {
+      return []
+    }
+
+    return parsed.filter(isNote)
   } catch {
-    return fallback
+    return []
   }
 }
 
@@ -56,8 +82,17 @@ function formatUpdatedAt(value: string) {
 }
 
 export default function App() {
-  const [notes, setNotes] = useState<Note[]>(() => loadNotes())
+  const [notes, setNotes] = useState<Note[]>(() => {
+    const savedNotes = loadNotes()
+    return savedNotes.length > 0 ? savedNotes : [createStarterNote()]
+  })
   const [selectedNoteId, setSelectedNoteId] = useState<string>(() => loadNotes()[0]?.id ?? '')
+
+  useEffect(() => {
+    if (!selectedNoteId && notes.length > 0) {
+      setSelectedNoteId(notes[0].id)
+    }
+  }, [notes, selectedNoteId])
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(notes))
@@ -75,13 +110,7 @@ export default function App() {
   )
 
   const createNote = () => {
-    const newNote: Note = {
-      id: createNoteId(),
-      title: 'Untitled note',
-      body: '',
-      updatedAt: new Date().toISOString(),
-    }
-
+    const newNote = createEmptyNote()
     setNotes((current) => [newNote, ...current])
     setSelectedNoteId(newNote.id)
   }
@@ -107,12 +136,7 @@ export default function App() {
   }
 
   const deleteNote = () => {
-    if (!selectedNote) {
-      return
-    }
-
-    const confirmed = window.confirm(`Delete "${selectedNote.title}"?`)
-    if (!confirmed) {
+    if (!selectedNote || !window.confirm('Delete this note? This cannot be undone.')) {
       return
     }
 
@@ -123,28 +147,26 @@ export default function App() {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="sidebar__header">
-          <div>
-            <p className="eyebrow">Demo-ready notes</p>
-            <h1>Note Taker</h1>
-          </div>
+          <h1>Notes</h1>
           <button type="button" className="primary-button" onClick={createNote}>
-            + New note
+            Create note
           </button>
         </div>
 
-        <div className="notes-list">
-          {notes.map((note) => (
+        <div className="notes-list" aria-label="Notes list">
+          {notes.map((note, index) => (
             <button
               key={note.id}
               type="button"
               className={`note-card ${note.id === selectedNote?.id ? 'note-card--active' : ''}`}
               onClick={() => setSelectedNoteId(note.id)}
+              aria-label={`Open note ${index + 1}`}
             >
               <div className="note-card__top">
                 <strong>{note.title.trim() || 'Untitled note'}</strong>
                 <span>{formatUpdatedAt(note.updatedAt)}</span>
               </div>
-              <p>{note.body.trim() || 'No content yet.'}</p>
+              <p>{note.body.trim() || 'Start typing to capture your note.'}</p>
             </button>
           ))}
         </div>
@@ -156,38 +178,38 @@ export default function App() {
             <>
               <div className="editor-card__header">
                 <div>
-                  <p className="eyebrow">Selected note</p>
-                  <h2>Edit your note</h2>
+                  <h2>Edit note</h2>
+                  <p className="editor-card__hint">Your first draft is ready — just add a title and notes.</p>
                 </div>
                 <button type="button" className="ghost-button danger-button" onClick={deleteNote}>
                   Delete note
                 </button>
               </div>
 
-              <label className="field">
+              <label className="field" htmlFor="note-title">
                 <span>Title</span>
                 <input
                   id="note-title"
                   value={selectedNote.title}
                   onChange={(event) => updateNote({ title: event.target.value })}
-                  placeholder="Give your note a title"
+                  placeholder="Note title"
                 />
               </label>
 
-              <label className="field field--grow">
+              <label className="field field--grow" htmlFor="note-body">
                 <span>Body</span>
                 <textarea
                   id="note-body"
                   value={selectedNote.body}
                   onChange={(event) => updateNote({ body: event.target.value })}
-                  placeholder="Write anything you want to remember..."
+                  placeholder="Write your note..."
                 />
               </label>
             </>
           ) : (
             <div className="empty-state">
-              <h2>No notes yet</h2>
-              <p>Create your first note to get started.</p>
+              <h2>No note selected</h2>
+              <p>Create a note to get started.</p>
               <button type="button" className="primary-button" onClick={createNote}>
                 Create note
               </button>
